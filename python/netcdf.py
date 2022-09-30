@@ -10,7 +10,9 @@ import seaborn as sns
 import rasterstats
 import os
 import glob
-
+import dask
+import netCDF4
+import h5netcdf
 ############################################################################################################
 #SIMPLE RASTER SCRIPTS
 ############################################################################################################
@@ -25,7 +27,7 @@ import glob
 #01 Open NETCDF File 
 
 #Define file path
-path = r'C:\...\DATA' 
+path = r'C:\Users\aashu\Downloads\India_Fire Project_UVA\raw_data' 
 
 #Define file type (e.i., .nc) 
 # -- sorted will list in order numerically & alphabetically
@@ -33,7 +35,7 @@ path = r'C:\...\DATA'
 files = sorted(glob.glob(path+"/*.nc"))
 
 # Open the desired dataset with xarray
-dataset = xr.open_mfdataset(files[0],parallel=True,chunks={"lon": 100,"lat":200}) #-- parallelize with x/y coordinates if labels are known
+dataset = xr.open_mfdataset(files[0],parallel=True),#chunks={"lon": 500,"lat":500}) #-- parallelize with x/y coordinates if labels are known
 #Sse smaller chunks if RAM is limited; larger chunks will render faster
 
 # Experiment with indexing the dataset with []
@@ -42,26 +44,32 @@ dataset = xr.open_mfdataset(files[0],parallel=True,chunks={"lon": 100,"lat":200}
 # See a plot by indexing the correct variable and executing the data with .plot()
 
 #Extract lat/lon arrays for plotting 
-ds_lat = dataset.y #or lat/latitude/etc. 
-ds_lon = dataset.x #or lon/longitude/etc.
+ds_lat = dataset.lat #or lat/latitude/etc. 
+ds_lon = dataset.lon #or lon/longitude/etc.
 #Dimensions may also be renamed -- e.g., north_south to y || east_west to x
 #ds.rename({'north_south': 'y', 'east_west': 'x'})
 
+date_index = enumerate(pd.date_range('01-01-2000','12-31-2021',freq='M'))
+#monthly_dataset =daily_dataset['Burn_Date'].groupby('time.month').sum('time')
 
+burndate_2000_2021_yearly = data_index.resample('Y').sum()
+
+burndate_2000_2021_yearly
 ########################################################################
 #02 Plot raster files 
 
 #Define a function to plot numpy arrays
 #Edit the figure size, colormap,title, etc. as needed
 def plot_np(array,vmin,vmax,title):
-    array = np.where(array==0,np.nan,array)
+    #array = np.where(array==0,np.nan,array)
     fig1, ax1 = plt.subplots(figsize=(12,8))
     image = ax1.imshow(array,cmap = 'YlOrBr',vmin=vmin,vmax=vmax)
     cbar = fig1.colorbar(image,ax=ax1)
     ax1.set_title('{}'.format(title))
+    plt.savefig(r'C:\Users\aashu\Downloads\India_Fire Project_UVA\raw_data\burn.png',dpi=200)
 #Above function is useful for when you need to apply np calculations
-
-
+da = np.array(dataset.Burn_Date[0])
+plot_np(da,0,366,"Burn Date")
 ######################################################################
 #03 Clip NETCDF
 
